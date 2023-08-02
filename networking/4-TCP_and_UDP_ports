@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Check if the ss and lsof commands are available
+command -v ss >/dev/null 2>&1 || { echo >&2 "ss command not found. Please install iproute2 package."; exit 1; }
+command -v lsof >/dev/null 2>&1 || { echo >&2 "lsof command not found. Please install lsof package."; exit 1; }
+
+# Get the list of listening sockets using ss
+listening_sockets=$(ss -tuln | grep -E '^LISTEN')
+
+# Loop through each listening socket
+while IFS= read -r socket_info; do
+    # Extract the local address and port from the socket_info
+    local_address_port=$(echo "$socket_info" | awk '{print $5}')
+    program_pid=$(echo "$socket_info" | awk '{print $6}')
+
+    # Use lsof to get the program name associated with the PID
+    program_name=$(lsof -p "$program_pid" | awk 'NR==2 {print $1}')
+
+    # Display the information
+    echo "Listening on $local_address_port with PID: $program_pid and Program: $program_name"
+done <<< "$listening_sockets"
